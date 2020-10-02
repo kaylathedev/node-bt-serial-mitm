@@ -1,0 +1,22 @@
+{
+  "name": "bt-serial-mitm",
+  "version": "0.0.1",
+  "description": "NodeJS Library to perform a MITM attack for bluetooth serial port devices",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaylathedev/node-bt-serial-mitm.git"
+  },
+  "keywords": [
+    "bluetooth", "serial"
+  ],
+  "author": "Kayla Colflesh <kcolflesh97@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kaylathedev/node-bt-serial-mitm/issues"
+  },
+  "homepage": "https://github.com/kaylathedev/node-bt-serial-mitm#readme",
+  "dependencies": {
+    "bluetooth-serial-port": "^2.2.7"
+  }
+}
