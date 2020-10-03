@@ -1,6 +1,23 @@
 const parentModule = require('bluetooth-serial-port')
 const EventEmitter = require('events')
 
+function bufferToAsciiEscaped(buffer) {
+  let ascii = ''
+  for (const char in buffer) {
+    if (char === 0x00) ascii += '\\0'
+    if (char === 0x08) ascii += '\\b'
+    if (char === 0x09) ascii += '\\t'
+    if (char === 0x0a) ascii += '\\n'
+    if (char === 0x0b) ascii += '\\v'
+    if (char === 0x0c) ascii += '\\f'
+    if (char === 0x0d) ascii += '\\r'
+    if (char === 0x5c) ascii += '\\\\'
+    if (char >= 0x20 && char <= 0x7e) ascii += String.fromCharCode(char)
+    ascii += hex.toString(16).padStart(2, '0')
+  }
+  return ascii
+}
+
 class BluetoothMITM extends EventEmitter {
   constructor() {
     super()
@@ -20,7 +37,7 @@ class BluetoothMITM extends EventEmitter {
     this.client.on('data', (data) => {
       this.emit('client.data', data)
       if (this._dataLoggerEnabled) {
-        console.log('host : ' + data)
+        console.log('host : ' + bufferToAsciiEscaped(data))
       }
       this._writeToServer(data)
     })
@@ -43,7 +60,7 @@ class BluetoothMITM extends EventEmitter {
     this.server.on('data', (data) => {
       this.emit('server.data', data)
       if (this._dataLoggerEnabled) {
-        console.log('slave: ' + data)
+        console.log('slave: ' + bufferToAsciiEscaped(data))
       }
       this._writeToClient(data)
     })
@@ -57,6 +74,9 @@ class BluetoothMITM extends EventEmitter {
       this.emit('server.failure')
     })
   }
+  /**
+   * @async
+   */
   inquire() {
     return new Promise(ok => {
       const devices = []
@@ -77,6 +97,47 @@ class BluetoothMITM extends EventEmitter {
       this.client.inquire()
     })
   }
+  /**
+   * @async
+   */
+  autoconnect(query) {
+    const search = new RegExp(query.replace(/\W/g, ''), 'gi')
+    return new Promise((ok, fail) => {
+      const found = (address, name) => {
+        if (
+          !query ||
+          address.replace(/\W/g, '').search(search) !== -1 ||
+          name.replace(/\W/g, '').search(search) !== -1
+        ) {
+          this.client.removeListener('finished', finished)
+          this.client.removeListener('found', found)
+          this.client.findSerialPortChannel(address, channel => {
+            this.client.connect(address, channel, () => {
+              this.clientName = name
+              this.clientAddress = address
+              this.clientChannel = channel
+              ok()
+            }, error => {
+              fail(error)
+            })
+          }, () => {
+            fail(new Error('Unable to find serial port channel'))
+          })
+        }
+      }
+      const finished = () => {
+        this.client.removeListener('finished', finished)
+        this.client.removeListener('found', found)
+        fail(new Error('No matching devices found to autoconnect to.'))
+      }
+      this.client.on('found', found)
+      this.client.on('finished', finished)
+      this.client.inquire()
+    })
+  }
+  /**
+   * @async
+   */
   _findSerialPortChannel(address) {
     return new Promise((ok, fail) => {
       this.client.findSerialPortChannel(address, channel => {
@@ -86,6 +147,9 @@ class BluetoothMITM extends EventEmitter {
       })
     })
   }
+  /**
+   * @async
+   */
   connect(address, channel) {
     return new Promise(async (ok, fail) => {
       try {
@@ -113,9 +177,9 @@ class BluetoothMITM extends EventEmitter {
     this.client.close()
     this._init()
   }
-  /*isOpen() {
-    return this.client.isOpen()
-  }*/
+  /**
+   * @async
+   */
   listPairedDevices() {
     return new Promise(ok => {
       this.client.listPairedDevices(pairedDevices => {
@@ -123,6 +187,9 @@ class BluetoothMITM extends EventEmitter {
       })
     })
   }
+  /**
+   * @async
+   */
   listen(a, b) {
     var options = {}
     if (a && a.constructor === Object) {
@@ -139,13 +206,17 @@ class BluetoothMITM extends EventEmitter {
       options.uuid = b
     }
     return new Promise((ok, fail) => {
-      this.server.listen(function(clientAddress) {
+      this.server.listen(clientAddress => {
+        this.emit('server.newclient', clientAddress)
         ok(clientAddress)
       }, function(error) {
         fail(error)
       }, options);
     })
   }
+  /**
+   * @async
+   */
   _writeToClient(buffer) {
     if (typeof buffer === 'string') {
       buffer = Buffer.from(buffer, 'utf8')
@@ -160,6 +231,9 @@ class BluetoothMITM extends EventEmitter {
       })
     })
   }
+  /**
+   * @async
+   */
   _writeToServer(buffer) {
     if (typeof buffer === 'string') {
       buffer = Buffer.from(buffer, 'utf8')

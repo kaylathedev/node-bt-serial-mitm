@@ -20,11 +20,17 @@ This library uses the term *"slave"* and *"host"*. In the above scenario, your s
 
 ## Usage
 
-Construct a new BluetoothMITM object and connect to your host (aka, your bluetooth device).
+Construct a new BluetoothMITM object and connect to your host (aka, your bluetooth device). It's a good idea to wait for this script to connect to your host first (hence the await keyword).
 
 ```js
 mitm = new (require('bt-serial-mitm')).BluetoothMITM
-mitm.connect('01:23:45:67:89:AB')
+await mitm.connect('01:23:45:67:89:AB')
+```
+
+Or you can use the "autoconnect" method to scan for bluetooth devices that match a certain name.
+
+```js
+await mitm.autoconnect('obd')
 ```
 
 Start the server
@@ -43,3 +49,9 @@ host : OK\r\n
 ```
 
 For example, if your smartphone is connecting to an OBD reader in your car, then your smartphone is the `slave` and your OBD reader is the `host`.
+
+## Events
+
+ - server.newclient
+
+   Occurs when a new slave device connects to your script.
