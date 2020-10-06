@@ -1,6 +1,6 @@
 {
   "name": "bt-serial-mitm",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "NodeJS Library to perform a MITM attack for bluetooth serial port devices",
   "main": "bt-serial-mitm.js",
   "repository": {

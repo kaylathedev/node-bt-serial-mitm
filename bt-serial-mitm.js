@@ -254,8 +254,18 @@ class BluetoothMITM extends EventEmitter {
 }
 
 class BluetoothToHttpServer extends EventEmitter {
-  constructor() {
+  constructor(config) {
     super()
+    let port = 8080
+    let host = undefined
+    if (config) {
+      if (config.port) {
+        port = config.port
+      }
+      if (config.host) {
+        host = config.host
+      }
+    }
     if (express === undefined) {
       express = require('express')
     }
@@ -267,7 +277,7 @@ class BluetoothToHttpServer extends EventEmitter {
     this._wsConnections = []
     this.wsServer.on('connection', this._onWsConnection.bind(this))
 
-    this.server = this.app.listen(8080)
+    this.server = this.app.listen(port, host)
     this.server.on('upgrade', (request, socket, head) => {
       this.wsServer.handleUpgrade(request, socket, head, socket => {
         this.wsServer.emit('connection', socket, request)
